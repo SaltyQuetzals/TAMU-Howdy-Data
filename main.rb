@@ -6,7 +6,7 @@ require_relative 'utils.rb'
 require_relative 'scrape.rb'
 
 def terms
-  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=1')
+  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=1728')
   JSON.parse(response.body)
 end
 
@@ -27,7 +27,7 @@ def get_term_code_cookies(term_code)
 end
 
 def depts_for_term(term_code)
-  response = request('/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=%s&offset=1&max=1' % term_code)
+  response = request('/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=%s&offset=1&max=1728' % term_code)
   JSON.parse(response.body)
 end
 

@@ -18,7 +18,7 @@ jobs:
           ruby-version: 2.7.0
       - name: Run script
         run: |
-          ruby scrape.rb
+          ruby main.rb
       - name: Zip
         run: |
           zip data.zip ./data/**/*

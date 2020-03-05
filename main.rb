@@ -43,9 +43,10 @@ end
 def async_process_section(term, section)
   Async do |_task|
     section if section['faculty'].empty?
-    section['faculty'] = section['faculty'].collect do |faculty|
+    faculty_async = section['faculty'].collect do |faculty|
       async_process_faculty(term, faculty)
     end
+    section['faculty'] = faculty_async.map(&:wait)
     section['faculty'].compact!
     section
   end

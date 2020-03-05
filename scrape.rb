@@ -36,7 +36,7 @@ end
 def get_term_code_cookies(term_code)
   uri = URI.parse("#{HOSTNAME}/StudentRegistrationSsb/ssb/term/search?mode=courseSearch")
   request = Net::HTTP::Post.new(uri)
-  request.form_data = {'dataType' => 'json', 'term' => term_code['code']}
+  request.form_data = { 'dataType' => 'json', 'term' => term_code['code'] }
   response = request_or_retry(request, uri)
   cookies = response.response['set-cookie']
   cookies
@@ -66,6 +66,7 @@ def retrieve_professor(banner_id, term_code, cookies)
     response = request_or_retry(request, uri)
     json_response = JSON.parse(response.body)
     return nil if json_response['data']['personData'].empty?
+
     detailed_professor = json_response['data']['personData']
     if detailed_professor['cvExists']
       detailed_professor['cvUrl'] = "#{HOSTNAME}#{detailed_professor['cvUrl']}"
@@ -88,6 +89,10 @@ def list_sections_for_dept(dept, term_code, cookies)
     request['Cookie'] = cookies
     response = request_or_retry(request, uri)
     json_response = JSON.parse(response.body)
+    if json_response.nil?
+      puts dept, term_code, 'yielded nil JSON response'
+      next
+    end
     results += json_response['data']
     all_collected = json_response['totalCount'] <= results.length
   end

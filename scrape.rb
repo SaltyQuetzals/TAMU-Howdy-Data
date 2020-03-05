@@ -102,7 +102,6 @@ end
 def main
   term_codes.each do |term_code|
     puts term_code['code']
-    term_code = {'code' => '202011'}
     departments = depts_for_term_code(term_code)
     FileUtils.mkdir_p("data/#{term_code['code']}")
     departments.each do |dept|

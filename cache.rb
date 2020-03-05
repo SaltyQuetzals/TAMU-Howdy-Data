@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require 'rwlock'
 require 'fileutils'
 require 'json'
 
+# File cache supporting concurrency
 class Cache
   def initialize(file_name)
     @file_name = file_name
@@ -16,9 +19,7 @@ class Cache
   def read(cache_key)
     value = nil
     @rwlock.read_sync do
-      if @cache.key?(cache_key)
-        value = @cache[cache_key]
-      end
+      value = @cache[cache_key] if @cache.key?(cache_key)
     end
 
     value
@@ -27,9 +28,7 @@ class Cache
   def contains(cache_key)
     contains = false
     @rwlock.read_sync do
-      if @cache.key?(cache_key)
-        contains = true
-      end
+      contains = true if @cache.key?(cache_key)
     end
 
     contains

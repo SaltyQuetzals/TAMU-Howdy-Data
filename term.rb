@@ -1,25 +1,33 @@
+# frozen_string_literal: true
+
 require 'faraday'
 require 'faraday-cookie_jar'
 require 'json'
 require 'uri'
 
+HOSTNAME = 'https://compassxe-ssb.tamu.edu'
+
+# Term stores cookies to correctly retrieve sections (and faculty?)
 class Term
   attr_accessor :term_code
 
   def initialize(term_code)
     @term_code = term_code
     @client = Faraday.new(
-      url: 'https://compassxe-ssb.tamu.edu',
+      url: HOSTNAME
     ) do |builder|
       builder.use :cookie_jar
       builder.request :retry, max: 12, interval: 0.05,
-                      interval_randomness: 0.5, backoff_factor: 2
+                              interval_randomness: 0.5, backoff_factor: 2
       builder.adapter Faraday.default_adapter
     end
 
-    # add appropriate cookies to cookie jar of Term
+    add_cookies
+  end
+
+  def add_cookies
     endpoint = '/StudentRegistrationSsb/ssb/term/search?mode=courseSearch'
-    form_data = {'dataType' => 'json', 'term' => term_code}
+    form_data = { 'dataType' => 'json', 'term' => term_code }
     @client.post(endpoint) do |request|
       request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
       request.body = URI.encode_www_form(form_data)
@@ -58,11 +66,11 @@ class Term
 
       person_data = json_response['data']['personData']
       if person_data['cvExists']
-        person_data['cvUrl'] = "https://compassxe-ssb.tamu.edu#{person_data['cvUrl']}"
+        person_data['cvUrl'] = "#{HOSTNAME}#{person_data['cvUrl']}"
       end
       person_data
-    rescue JSON::ParserError => parser_error
-      puts parser_error
+    rescue JSON::ParserError => e
+      puts e
       retry
     end
   end

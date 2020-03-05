@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'async'
 require 'fileutils'
 require 'json'
@@ -30,7 +32,7 @@ def async_process_dept(term, dept)
     sections_async = term.sections(dept).collect do |section|
       async_process_section(term, section)
     end
-    sections = sections_async.map { |section| section.wait }
+    sections = sections_async.map(&:wait)
     File.open("data/#{term.term_code}/#{dept['code']}.json", 'w') do |output|
       output.write(sections.to_json)
     end
@@ -39,7 +41,7 @@ def async_process_dept(term, dept)
 end
 
 def async_process_section(term, section)
-  Async do |task|
+  Async do |_task|
     section if section['faculty'].empty?
     section['faculty'] = section['faculty'].collect do |faculty|
       async_process_faculty(term, faculty)
@@ -54,9 +56,7 @@ def async_process_faculty(term, faculty)
     display_name = faculty['displayName']
     unless CACHE.contains(display_name)
       person_data = term.get_faculty(faculty)
-      if person_data
-        CACHE.insert(display_name, person_data)
-      end
+      CACHE.insert(display_name, person_data) if person_data
     end
     CACHE.read(display_name)
   end

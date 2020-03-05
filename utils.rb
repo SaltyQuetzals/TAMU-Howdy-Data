@@ -5,25 +5,21 @@ module HttpMethod
   POST = 1
 end
 
-CONN = Faraday.new(
+CLIENT = Faraday.new(
   url: 'https://compassxe-ssb.tamu.edu',
-) do |conn|
-  conn.request :retry, max: 12, interval: 0.05,
-               interval_randomness: 0.5, backoff_factor: 2
+) do |builder|
+  builder.request :retry, max: 12, interval: 0.05,
+                  interval_randomness: 0.5, backoff_factor: 2
+  builder.adapter Faraday.default_adapter
 end
 
-def request(endpoint, method = HttpMethod::GET, form_data = nil)
+def request(endpoint, method = HttpMethod::GET)
   case method
   when HttpMethod::GET
-    CONN.get do |request|
-      request.url endpoint
-    end
+    CLIENT.get(endpoint)
   when HttpMethod::POST
-    CONN.post do |request|
-      request.url endpoint
-      request.body = form_data
-    end
+    CLIENT.post(endpoint)
   else
-    puts "poop"
+    puts 'poop' # poop
   end
 end

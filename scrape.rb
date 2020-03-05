@@ -36,7 +36,7 @@ end
 def get_term_code_cookies(term_code)
   uri = URI.parse("#{HOSTNAME}/StudentRegistrationSsb/ssb/term/search?mode=courseSearch")
   request = Net::HTTP::Post.new(uri)
-  request.form_data = { 'dataType' => 'json', 'term' => term_code['code'] }
+  request.form_data = {'dataType' => 'json', 'term' => term_code['code']}
   response = request_or_retry(request, uri)
   cookies = response.response['set-cookie']
   cookies
@@ -102,6 +102,7 @@ end
 def main
   term_codes.each do |term_code|
     puts term_code['code']
+    term_code = {'code' => '202011'}
     departments = depts_for_term_code(term_code)
     FileUtils.mkdir_p("data/#{term_code['code']}")
     departments.each do |dept|

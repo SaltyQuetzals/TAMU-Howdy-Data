@@ -3,6 +3,8 @@
 require 'faraday'
 require 'faraday-cookie_jar'
 require 'json'
+require 'typhoeus'
+require 'typhoeus/adapters/faraday'
 require 'uri'
 
 HOSTNAME = 'https://compassxe-ssb.tamu.edu'
@@ -19,7 +21,7 @@ class Term
       builder.use :cookie_jar
       builder.request :retry, max: 12, interval: 0.05,
                               interval_randomness: 0.5, backoff_factor: 2
-      builder.adapter Faraday.default_adapter
+      builder.adapter :typhoeus
     end
 
     add_cookies
@@ -35,7 +37,7 @@ class Term
   end
 
   def departments
-    response = @client.get("/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=#{@term_code}&offset=1&max=2")
+    response = @client.get("/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=#{@term_code}&offset=1&max=144")
     JSON.parse(response.body)
   end
 

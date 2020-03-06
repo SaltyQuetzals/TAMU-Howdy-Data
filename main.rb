@@ -11,7 +11,7 @@ require_relative 'utils.rb'
 CACHE = Cache.new('data/cache.json')
 
 def terms
-  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=1728')
+  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=2')
   JSON.parse(response.body)
 end
 
@@ -41,7 +41,7 @@ def async_process_dept(term, dept)
 end
 
 def async_process_section(term, section)
-  Async do |_task|
+  Async do |_|
     section if section['faculty'].empty?
     faculty_async = section['faculty'].collect do |faculty|
       async_process_faculty(term, faculty)

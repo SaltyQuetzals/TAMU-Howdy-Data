@@ -1,0 +1,49 @@
+# frozen_string_literal: true
+
+require 'async'
+require 'fileutils'
+require 'json'
+
+require_relative 'cache.rb'
+require_relative 'term.rb'
+require_relative 'utils.rb'
+
+CACHE = Cache.new('data/cache.json')
+
+def terms
+  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=1728')
+  JSON.parse(response.body)
+end
+
+def async_process_term(term)
+  Async do |_|
+    term_code = term['code']
+    FileUtils.mkdir_p("data/#{term_code}")
+    term = Term.new(term_code)
+    term.departments.each do |dept|
+      async_process_dept(term, dept)
+    end
+  end
+end
+
+def async_process_dept(term, dept)
+  Async do |_|
+    sections = term.sections(dept)
+    sections_data = term.parallel_process_sections(sections, CACHE)
+    File.open("data/#{term.term_code}/#{dept['code']}.json", 'w') do |output|
+      output.write(sections_data.to_json)
+    end
+    CACHE.update_to_disk
+    puts "finished processing term=#{term.term_code}, dept=#{dept['code']}"
+  end
+end
+
+def main
+  Async do |_|
+    terms.each do |term|
+      async_process_term term
+    end
+  end
+end
+
+main

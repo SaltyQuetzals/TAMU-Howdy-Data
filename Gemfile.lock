@@ -1,0 +1,35 @@
+GEM
+  specs:
+    async (1.24.2)
+      console (~> 1.0)
+      nio4r (~> 2.3)
+      timers (~> 4.1)
+    console (1.8.2)
+    domain_name (0.5.20190701)
+      unf (>= 0.0.5, < 1.0.0)
+    faraday (1.0.0)
+      multipart-post (>= 1.2, < 3)
+    faraday-cookie_jar (0.0.6)
+      faraday (>= 0.7.4)
+      http-cookie (~> 1.0.0)
+    http-cookie (1.0.3)
+      domain_name (~> 0.5)
+    multipart-post (2.1.1)
+    nio4r (2.5.2)
+    rwlock (1.0.0)
+    timers (4.3.0)
+    unf (0.1.4)
+      unf_ext
+    unf_ext (0.0.7.6)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  async
+  faraday
+  faraday-cookie_jar
+  rwlock
+
+BUNDLED WITH
+   2.1.4

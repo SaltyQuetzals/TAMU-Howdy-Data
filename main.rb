@@ -11,7 +11,7 @@ require_relative 'utils.rb'
 CACHE = Cache.new('data/cache.json')
 
 def terms
-  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=2')
+  response = request('/StudentRegistrationSsb/ssb/courseSearch/getTerms?dataType=json&offset=1&max=1728')
   JSON.parse(response.body)
 end
 

@@ -35,7 +35,7 @@ class Term
   end
 
   def departments
-    response = @client.get("/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=#{@term_code}&offset=1&max=1728")
+    response = @client.get("/StudentRegistrationSsb/ssb/classSearch/get_subject?searchTerm=&term=#{@term_code}&offset=1&max=2")
     JSON.parse(response.body)
   end
 

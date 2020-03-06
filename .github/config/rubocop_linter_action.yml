@@ -13,6 +13,7 @@ check_name: 'Rubocop Results'
 #     - rubocop: 'latest'
 versions:
   - rubocop
+  - rubocop-rails
   - rubocop-minitest
   - rubocop-performance: '1.5.1'
   - rubocop-rspec: '1.37.0'
@@ -22,13 +23,14 @@ versions:
 # Default: nil
 # Note: This does not need to be filled out for Rubocop to still find your config.
 # Resource: https://rubocop.readthedocs.io/en/stable/configuration/
-rubocop_config_path:
+rubocop_config_path: '.rubocop.yml'
 
 # Run all cops enabled by configuration except this list.
 # Valid options: list of valid cop(s) and/or departments.
 # Default: nil
 # Resource: https://rubocop.readthedocs.io/en/stable/cops/
 rubocop_excluded_cops:
+  - 'Style/FrozenStringLiteralComment'
 
 # Minimum severity for exit with error code
 # Valid options: 'refactor', 'convention', 'warning', 'error', or 'fatal'.

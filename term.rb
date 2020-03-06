@@ -3,8 +3,6 @@
 require 'faraday'
 require 'faraday-cookie_jar'
 require 'json'
-require 'typhoeus'
-require 'typhoeus/adapters/faraday'
 require 'uri'
 
 HOSTNAME = 'https://compassxe-ssb.tamu.edu'
@@ -21,7 +19,7 @@ class Term
       builder.use :cookie_jar
       builder.request :retry, max: 12, interval: 0.05,
                               interval_randomness: 0.5, backoff_factor: 2
-      builder.adapter :typhoeus
+      builder.adapter Faraday.default_adapter
     end
 
     add_cookies
@@ -60,50 +58,20 @@ class Term
     collected
   end
 
-  def parallel_process_sections(sections, cache)
-    @client.in_parallel do
-      sections.map do |section|
-        section if section['faculty'].empty?
-        section['faculty'] = parallel_process_faculty(section['faculty'], cache)
-        section['faculty'].compact!
-        section
+  def get_faculty(faculty)
+    response = @client.get("/StudentRegistrationSsb/ssb/contactCard/retrieveData?bannerId=#{faculty['bannerId']}&termCode=#{@term_code}")
+    begin
+      json_response = JSON.parse(response.body)
+      return nil if json_response['data']['personData'].empty?
+
+      person_data = json_response['data']['personData']
+      if person_data['cvExists']
+        person_data['cvUrl'] = "#{HOSTNAME}#{person_data['cvUrl']}"
       end
+      person_data
+    rescue JSON::ParserError => e
+      puts e
+      retry
     end
-
-    sections
-  end
-
-  def parallel_process_faculty(faculty_members, cache)
-    @client.in_parallel do
-      faculty_members.map do |faculty|
-        get_faculty(faculty, cache)
-      end
-    end
-
-    faculty_members
-  end
-
-  def get_faculty(faculty, cache)
-    display_name = faculty['displayName']
-
-    unless cache.contains(display_name)
-      response = @client.get("/StudentRegistrationSsb/ssb/contactCard/retrieveData?bannerId=#{faculty['bannerId']}&termCode=#{@term_code}")
-
-      response.on_complete do |resp|
-        json_response = JSON.parse(resp.body)
-        return nil if json_response['data']['personData'].empty?
-
-        person_data = json_response['data']['personData']
-        if person_data['cvExists']
-          person_data['cvUrl'] = "#{HOSTNAME}#{person_data['cvUrl']}"
-        end
-
-        cache.insert(display_name, person_data)
-
-        person_data
-      end
-    end
-
-    cache.read(display_name) || response
   end
 end

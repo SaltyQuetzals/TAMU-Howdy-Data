@@ -6,7 +6,6 @@ require 'json'
 require 'uri'
 
 HOSTNAME = 'https://compassxe-ssb.tamu.edu'
-
 # Term stores cookies to correctly retrieve sections (and faculty?)
 class Term
   attr_accessor :term_code
@@ -14,11 +13,11 @@ class Term
   def initialize(term_code)
     @term_code = term_code
     @client = Faraday.new(
-      url: HOSTNAME
+        url: HOSTNAME
     ) do |builder|
       builder.use :cookie_jar
       builder.request :retry, max: 12, interval: 0.05,
-                              interval_randomness: 0.5, backoff_factor: 2
+                      interval_randomness: 0.5, backoff_factor: 2
       builder.adapter Faraday.default_adapter
     end
 
@@ -27,7 +26,7 @@ class Term
 
   def add_cookies
     endpoint = '/StudentRegistrationSsb/ssb/term/search?mode=courseSearch'
-    form_data = { 'dataType' => 'json', 'term' => term_code }
+    form_data = {'dataType' => 'json', 'term' => term_code}
     @client.post(endpoint) do |request|
       request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
       request.body = URI.encode_www_form(form_data)
@@ -40,6 +39,7 @@ class Term
   end
 
   def sections(dept)
+    add_cookies
     collected = []
     total_sections = 420
     until collected.length >= total_sections
@@ -47,10 +47,9 @@ class Term
 
       json_response = JSON.parse(response.body)
       if json_response.nil?
-        puts dept['code'], @term_code, 'yielded nil JSON response'
+        puts "#{dept['code']} #{@term_code} yielded nil JSON response"
         next
       end
-
       collected += json_response['data']
       total_sections = json_response['totalCount']
     end

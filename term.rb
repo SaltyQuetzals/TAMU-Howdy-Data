@@ -42,6 +42,7 @@ class Term
   end
 
   def sections(dept)
+    add_cookies
     collected = []
     total_sections = 420
     until collected.length >= total_sections

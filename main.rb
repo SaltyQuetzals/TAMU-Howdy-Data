@@ -27,14 +27,39 @@ def async_process_term(term)
 end
 
 def async_process_dept(term, dept)
+  puts "processing term=#{term.term_code}, dept=#{dept['code']}"
   Async do |_|
-    sections = term.sections(dept)
-    sections_data = term.parallel_process_sections(sections, CACHE)
+    sections_async = term.sections(dept).collect do |section|
+      async_process_section(term, section)
+    end
+    sections = sections_async.map(&:wait)
     File.open("data/#{term.term_code}/#{dept['code']}.json", 'w') do |output|
-      output.write(sections_data.to_json)
+      output.write(sections.to_json)
     end
     CACHE.update_to_disk
-    puts "finished processing term=#{term.term_code}, dept=#{dept['code']}"
+  end
+end
+
+def async_process_section(term, section)
+  Async do |_task|
+    section if section['faculty'].empty?
+    faculty_async = section['faculty'].collect do |faculty|
+      async_process_faculty(term, faculty)
+    end
+    section['faculty'] = faculty_async.map(&:wait)
+    section['faculty'].compact!
+    section
+  end
+end
+
+def async_process_faculty(term, faculty)
+  Async do |_|
+    display_name = faculty['displayName']
+    unless CACHE.contains(display_name)
+      person_data = term.get_faculty(faculty)
+      CACHE.insert(display_name, person_data) if person_data
+    end
+    CACHE.read(display_name)
   end
 end
 

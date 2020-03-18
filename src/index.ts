@@ -29,7 +29,6 @@ const downloadDepartmentData = async (term: Term, dept: CompassDepartment, retri
 
 const collectAllData = async (term: Term) => {
     const departments = await term.departments();
-    console.log(departments);
     for (const department of departments) {
         const departmentData = await downloadDepartmentData(term, department);
         fs.writeFile(

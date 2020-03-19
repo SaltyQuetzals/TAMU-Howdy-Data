@@ -11,6 +11,14 @@ import {
 } from './compass';
 import {URL} from 'url';
 import axiosRetry from 'axios-retry';
+import axiosCookieJarSupport from 'axios-cookiejar-support';
+import * as tough from 'tough-cookie';
+import {setupCache} from 'axios-cache-adapter';
+
+// Create `axios-cache-adapter` instance
+const CACHE = setupCache({
+    maxAge: 24 * 60 * 1000,
+});
 
 const BASE_URL = 'https://compassxe-ssb.tamu.edu';
 
@@ -18,10 +26,20 @@ export class Term {
     static MAX_PAGE_SIZE = 500;
     static MAX_RETRIES = 10;
     private readonly client: AxiosInstance;
+    private jar: tough.CookieJar;
+    private professorCache: Map<string, CompassFaculty>;
 
     constructor(public termCode: TermCode) {
-        this.client = Axios.create({baseURL: BASE_URL});
-        axiosRetry(this.client, {retries: Term.MAX_RETRIES, retryCondition: error => true});
+        this.client = Axios.create({
+            baseURL: BASE_URL,
+            jar: new tough.CookieJar(),
+            adapter: CACHE.adapter,
+        });
+        this.professorCache = new Map<string, CompassFaculty>();
+        axiosCookieJarSupport(this.client);
+        this.jar = new tough.CookieJar();
+        this.client.defaults.jar = this.jar;
+        axiosRetry(this.client, {retries: Term.MAX_RETRIES});
     }
 
     /**
@@ -35,9 +53,7 @@ export class Term {
             dataType: 'json',
             term: this.termCode,
         };
-        const response = await this.client.post(endpoint, qs.stringify(formData));
-        const [cookie] = response.headers['set-cookie'];
-        this.client.defaults.headers.Cookie = cookie;
+        await this.client.post(endpoint, qs.stringify(formData));
     }
 
     /**
@@ -98,7 +114,10 @@ export class Term {
      */
     private async updateEachCourseWithFullDescription(courses: CompassCourse[]) {
         for (let i = 0; i < courses.length; ++i) {
-            courses[i].courseDescription = await this.getCourseDescription(courses[i].subjectCode, courses[i].courseNumber);
+            courses[i].courseDescription = await this.getCourseDescription(
+                courses[i].subjectCode,
+                courses[i].courseNumber
+            );
         }
         return courses;
     }
@@ -128,11 +147,15 @@ export class Term {
      * Replaces the sections in the given sectionPromise with fully-hydrated faculty members.
      * @param sectionPromise
      */
-    private async addFullFaculty(sectionPromise: Promise<CompassSection[]>): Promise<CompassSection[]> {
+    private async addFullFaculty(
+        sectionPromise: Promise<CompassSection[]>
+    ): Promise<CompassSection[]> {
         return sectionPromise.then(sections => {
             return Promise.all(
                 sections.map(section => {
-                    return this.faculty(...section.faculty as CompassSectionFaculty[]).then(fullFaculty => {
+                    return this.faculty(
+                        ...(section.faculty as CompassSectionFaculty[])
+                    ).then(fullFaculty => {
                         section.faculty = fullFaculty;
                         return section;
                     });
@@ -182,24 +205,25 @@ export class Term {
      * Gets hydrated faculty members, given their "dehydrated" versions.
      * @param facultyMembers
      */
-    async faculty(...facultyMembers: CompassSectionFaculty[]): Promise<CompassFaculty[]> {
-        this.addCookies();
+    async faculty(
+        ...facultyMembers: CompassSectionFaculty[]
+    ): Promise<CompassFaculty[]> {
         const fullFaculty: CompassFaculty[] = [];
         for (const facultyMember of facultyMembers) {
-            let retries = Term.MAX_RETRIES;
-            while (retries > 0) {
-                try {
-                    const response = await this.client.get(`/StudentRegistrationSsb/ssb/contactCard/retrieveData?bannerId=${facultyMember.bannerId}&termCode=${this.termCode}`);
-                    const fullMember = response.data.personData as CompassFaculty;
-                    if (fullMember.cvExists) {
-                        fullMember.cvUrl = BASE_URL + fullMember.cvUrl;
+            if (!this.professorCache.has(facultyMember.displayName)) {
+                const response = await this.client.get(
+                    `/StudentRegistrationSsb/ssb/contactCard/retrieveData?bannerId=${facultyMember.bannerId}&termCode=${this.termCode}`,
+                    {
+                        withCredentials: true,
                     }
-                    fullFaculty.push(fullMember);
-                } catch (err) {
-                    console.error(`Failed to retrieve ${BASE_URL}/StudentRegistrationSsb/ssb/contactCard/retrieveData?bannerId=${facultyMember.bannerId}&termCode=${this.termCode}`)
-                    retries -= 1;
+                );
+                const fullMember = response.data.data.personData as CompassFaculty;
+                if (fullMember.cvExists) {
+                    fullMember.cvUrl = BASE_URL + fullMember.cvUrl;
                 }
+                this.professorCache.set(facultyMember.displayName, fullMember);
             }
+            fullFaculty.push(this.professorCache.get(facultyMember.displayName)!);
         }
         return fullFaculty;
     }

@@ -13,7 +13,7 @@ const downloadDepartmentData = async (term: Term, dept: CompassDepartment, retri
                 dept.courses[course.courseNumber] = course;
             }
 
-            const sections = await term.sectionsForDepartment(dept.code);
+            const sections = await term.sectionsForDepartment(dept.code, true);
             for (const section of sections) {
                 dept.courses[section.courseNumber].sections!.push(section);
             }
@@ -29,6 +29,23 @@ const downloadDepartmentData = async (term: Term, dept: CompassDepartment, retri
 
 const collectAllData = async (term: Term) => {
     const departments = await term.departments();
+    //
+    // const departmentPromises = [];
+    // for (const department of departments) {
+    //     departmentPromises.push(downloadDepartmentData(term, department).then((departmentData) => {
+    //         fs.writeFile(
+    //                 `data/${term.termCode}/${departmentData.code}.json`,
+    //                 JSON.stringify(departmentData, null, 3),
+    //                 err => {
+    //                     if (err) {
+    //                         console.error(err);
+    //                     }
+    //                     console.log(departmentData.code);
+    //                 }
+    //             );
+    //     }))
+    // }
+    // await Promise.all(departmentPromises);
     for (const department of departments) {
         const departmentData = await downloadDepartmentData(term, department);
         fs.writeFile(

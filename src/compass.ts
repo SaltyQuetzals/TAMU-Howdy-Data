@@ -3,7 +3,7 @@ export type TermCode = string;
 export interface CompassDepartment {
   code: string;
   description: string;
-  courses: {[key: string]: CompassCourse};
+  courses: { [key: string]: CompassCourse };
 }
 
 export interface CompassSectionFaculty {

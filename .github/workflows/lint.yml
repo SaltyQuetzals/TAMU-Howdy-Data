@@ -1,0 +1,22 @@
+on:
+  push:
+
+name: Lint Code
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+      - name: NPM Install
+        run: |
+          npm i -g typescript
+          npm install
+      - name: Run script
+        run: |
+          npm run check

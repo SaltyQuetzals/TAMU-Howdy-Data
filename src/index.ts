@@ -9,7 +9,8 @@ const downloadDepartmentData = async (
   term: Term,
   dept: CompassDepartment,
   retriesRemaining = Term.MAX_RETRIES
-): Promise<CompassDepartment> => {
+): Promise<{ dept: CompassDepartment; elapsed: number }> => {
+  const startTime = Date.now();
   while (retriesRemaining > 0) {
     try {
       dept.courses = {};
@@ -24,7 +25,7 @@ const downloadDepartmentData = async (
       for (const section of sections) {
         dept.courses[section.courseNumber].sections!.push(section);
       }
-      return dept;
+      return { dept, elapsed: Date.now() - startTime };
     } catch (err) {
       console.log(`Failed to download ${dept.code}.`);
       console.error(err);
@@ -39,10 +40,19 @@ const downloadDepartmentData = async (
 const collectAllData = async (term: Term) => {
   const departments = await term.departments();
   const departmentPromises = departments.map(department =>
-    downloadDepartmentData(new Term(term.termCode), department).then(dept => {
-      console.log(dept.code, 'completed.');
-      return dept;
-    })
+    downloadDepartmentData(new Term(term.termCode), department).then(
+      ({ dept, elapsed }) => {
+        console.log(
+          term.termCode,
+          ': ',
+          dept.code,
+          'completed after',
+          elapsed / 1000,
+          'seconds'
+        );
+        return dept;
+      }
+    )
   );
   const departmentData = await Promise.all(departmentPromises);
   const allCourses: {
@@ -67,12 +77,11 @@ async function main() {
     fs.mkdirSync('data');
   }
   const terms = await Term.allTerms();
-  for (const { code } of terms) {
-    console.log('====================================================');
-    console.log(code);
-    console.log('====================================================');
-    const term = new Term(code);
-    await collectAllData(term);
+  for (const term of terms.reverse()) {
+    console.log("================================");
+    console.log(term.code);
+    console.log("================================");
+    await collectAllData(new Term(term.code));
   }
 }
 

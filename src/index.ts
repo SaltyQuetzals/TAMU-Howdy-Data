@@ -1,6 +1,6 @@
 import { Term } from './term';
 import * as fs from 'fs';
-import { CompassDepartment } from './compass';
+import { CompassDepartment, CompassCourse } from './compass';
 import { promisify } from 'util';
 
 const promisifiedWriteFile = promisify(fs.writeFile);
@@ -38,21 +38,28 @@ const downloadDepartmentData = async (
 
 const collectAllData = async (term: Term) => {
   const departments = await term.departments();
-  const departmentPromises = [];
-  for (const department of departments) {
-    departmentPromises.push(
-      downloadDepartmentData(new Term(term.termCode), department).then(
-        departmentData =>
-          promisifiedWriteFile(
-            `data/${term.termCode}/${departmentData.code}.json`,
-            JSON.stringify(departmentData, null, 3)
-          ).then(() => {
-            console.log(department.code);
-          })
-      )
-    );
+  const departmentPromises = departments.map(department =>
+    downloadDepartmentData(new Term(term.termCode), department).then(dept => {
+      console.log(dept.code, 'completed.');
+      return dept;
+    })
+  );
+  const departmentData = await Promise.all(departmentPromises);
+  const allCourses: {
+    courses: { [deptCourseCombo: string]: CompassCourse };
+    updatedAt: Date;
+  } = { courses: {}, updatedAt: new Date() };
+  for (const dept of departmentData) {
+    for (const courseNum of Object.keys(dept.courses)) {
+      const course = dept.courses[courseNum];
+      allCourses.courses[`${dept.code} ${courseNum}`] = course;
+    }
   }
-  await Promise.all(departmentPromises);
+  allCourses.updatedAt = new Date();
+  await promisifiedWriteFile(
+    `data/${term.termCode}.json`,
+    JSON.stringify(allCourses)
+  );
 };
 
 async function main() {
@@ -64,9 +71,6 @@ async function main() {
     console.log('====================================================');
     console.log(code);
     console.log('====================================================');
-    if (!fs.existsSync(`data/${code}`)) {
-      fs.mkdirSync(`data/${code}`);
-    }
     const term = new Term(code);
     await collectAllData(term);
   }

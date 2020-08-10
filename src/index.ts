@@ -38,38 +38,21 @@ const downloadDepartmentData = async (
 };
 
 const collectAllData = async (term: Term) => {
-  const departments = await term.departments();
-  const departmentPromises = departments.map(department =>
-    downloadDepartmentData(new Term(term.termCode), department).then(
-      ({ dept, elapsed }) => {
-        console.log(
-          term.termCode,
-          ': ',
-          dept.code,
-          'completed after',
-          elapsed / 1000,
-          'seconds'
-        );
-        return dept;
-      }
-    )
-  );
-  const departmentData = await Promise.all(departmentPromises);
+  const depts = await term.departments();
   const allCourses: {
     courses: { [deptCourseCombo: string]: CompassCourse };
     updatedAt: Date;
   } = { courses: {}, updatedAt: new Date() };
-  for (const dept of departmentData) {
-    for (const courseNum of Object.keys(dept.courses)) {
-      const course = dept.courses[courseNum];
-      allCourses.courses[`${dept.code} ${courseNum}`] = course;
+  for (const dept of depts) {
+    const { dept: department, elapsed } = await downloadDepartmentData(new Term(term.termCode), dept);
+    console.log(`${term.termCode}: ${dept.code} completed afer ${elapsed / 1000} seconds.`);
+    for (const courseNum of Object.keys(department.courses)) {
+      const course = department.courses[courseNum];
+      allCourses.courses[`${department.code} ${courseNum}`] = course;
     }
+    allCourses.updatedAt = new Date();
+    await promisifiedWriteFile(`data/${term.termCode}.json`, JSON.stringify(allCourses));
   }
-  allCourses.updatedAt = new Date();
-  await promisifiedWriteFile(
-    `data/${term.termCode}.json`,
-    JSON.stringify(allCourses)
-  );
 };
 
 async function main() {
